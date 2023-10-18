@@ -1,0 +1,82 @@
+#%RAML 1.0
+title: rani
+baseUri: http://localhost:8081/api/
+version: v1
+protocols:
+    - HTTP
+mediaType: 
+- application/json
+
+/getcustomerbyId:
+  get:
+    queryParameters:
+      customerid:
+    responses:
+      200:
+        body:
+          application/json:
+            example:
+             {
+              "id": 5,
+              "name": "rama",
+              "email": "rama@pas.com",
+              "address": "hyb",
+              "telephone": 1234567861
+             }
+/createcustomer:
+  post:
+    body:
+      application/json:
+        example:
+          {
+            "id":1,
+            "name": "jaff winger",
+            "email": "jaff@winger.com",
+            "address": "california",
+            "telephone":123456789
+          }
+    responses:
+      200:
+       body:
+        application/json:
+          example:
+            {
+              "massage": "create customer successfully"
+            }
+/updatecustomer:
+  put:
+    body:
+      application/json:
+        example:
+          {
+            "id": 1,
+            "telephone": 12345
+          }
+    responses:
+      200:
+        body:
+          application/json:
+            example:
+              {
+                "massage": "telephone number update successfully"
+              }
+/deletecustomer:
+  delete:
+    queryParameters:
+     customerid:
+    responses:
+      200:
+        body:
+          application/json:
+            example:
+             {
+              "Massage": "customerid deleted successfully"
+             }
+        
+      
+                   
+      
+                            
+                          
+          
+      

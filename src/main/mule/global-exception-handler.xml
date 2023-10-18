@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<error-handler name="global-exception-handlerError_Handler" doc:id="a5448439-bf03-48ef-b340-22348c5fc913" >
+		<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate_DB:CONNECITIVITY" doc:id="b893b13c-f314-4ec7-bfa8-f76e6c39010f" type="DB:CONNECTIVITY" >
+			<set-variable value="503" doc:name="http status" doc:id="ef384f07-450d-48e8-83b6-4e4176617b7c" variableName="http status" />
+			<set-variable value='#["db connectivity"]' doc:name="http Reson" doc:id="333e39f2-c603-408f-9fb7-832e46a91985" variableName="http reason" />
+			<ee:transform doc:name="Transform Message" doc:id="040b00a5-f438-4f73-b50e-2fc4a76258a0" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+
+---
+"due some technical issue, we are not able to process the request: database not responding"]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+		</on-error-propagate>
+		<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate_DB:bad sql syntax error" doc:id="8a81cd51-9b28-4fc7-b2de-edd07b1f185f" type="DB:BAD_SQL_SYNTAX" >
+			<set-variable value="502" doc:name="http status" doc:id="b86beea7-145c-4970-ac31-75a0174d44e9" variableName="http status" />
+			<set-variable value='#["db badsqlsyntax"]' doc:name="http status massage" doc:id="c72a02d1-3cf7-4205-babe-305b6f79fa06" variableName="http reason" />
+			<ee:transform doc:name="final error payload massage" doc:id="8ade4b00-83ea-459f-a085-88d54ccf88d9">
+				<ee:message>
+					<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+
+---
+"Bad Synatx please check the query"]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+		</on-error-propagate>
+	</error-handler>
+</mule>

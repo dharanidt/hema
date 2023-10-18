@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:api-gateway="http://www.mulesoft.org/schema/mule/api-gateway" xmlns:secure-properties="http://www.mulesoft.org/schema/mule/secure-properties" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd 
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/secure-properties http://www.mulesoft.org/schema/mule/secure-properties/current/mule-secure-properties.xsd
+http://www.mulesoft.org/schema/mule/api-gateway http://www.mulesoft.org/schema/mule/api-gateway/current/mule-api-gateway.xsd">
+    <http:listener-config name="rani-httpListenerConfig">
+        <http:listener-connection host="${http.host}" port="${http.port}" />
+    </http:listener-config>
+    <apikit:config name="rani-config" api="rani.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" />
+	<db:config name="Database_Config" doc:name="Database Config" doc:id="8ee1dac0-db3f-49dd-a402-b37e7bf1a4c3" >
+		<db:my-sql-connection host="${db.host}" port="${db.port}" user="${secure::db.user}" password="${secure::db.password}" database="${db.database}" />
+	</db:config>
+	<configuration-properties doc:name="Configuration properties" doc:id="e8e48210-cd5c-4ad1-82f4-35297326d4fc" file="${env}.properties" />
+	<secure-properties:config name="Secure_Properties_Config" doc:name="Secure Properties Config" doc:id="521914cd-943a-4f06-9336-b6d5c54a6237" file="${env}_secure.properties" key="${key}" >
+		<secure-properties:encrypt algorithm="Blowfish" />
+	</secure-properties:config>
+<!-- 	<api-gateway:autodiscovery apiId="18930713" ignoreBasePath="true" doc:name="API Autodiscovery" doc:id="fd61c548-9266-406d-bae6-0002bb6bdc71" flowRef="rani-main" />  -->
+	<api-gateway:autodiscovery apiId="18995559" ignoreBasePath="true" doc:name="API Autodiscovery" doc:id="303c9a1d-a056-4470-b890-633fe9517cbf" flowRef="rani-main" />
+	<configuration doc:name="Configuration" doc:id="9ca7f6da-b02d-4c82-a3a3-1b64deeaa294" defaultErrorHandler-ref="global-exception-handlerError_Handler" />
+	<flow name="rani-main">
+        <http:listener config-ref="rani-httpListenerConfig" path="/api/*">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body>#[payload]</http:body>
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:router config-ref="rani-config" />
+    </flow>
+	<flow name="put:\updatecustomer:application\json:rani-config">
+        <db:update doc:name="Update" doc:id="16898d29-9c68-45f3-9222-4d3c54394506" config-ref="Database_Config">
+			<db:sql ><![CDATA[UPDATE database_db.emp SET telephone=:telephone WHERE id=:id]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	id:payload.id,
+	telephone:payload.telephone
+}]]]></db:input-parameters>
+		</db:update>
+		<ee:transform doc:name="Transform Message">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  massage: "telephone number update successfully"
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="delete:\deletecustomer:rani-config">
+        <ee:transform doc:name="Transform Message">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  Massage: "customerid deleted successfully"
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="get:\getcustomerbyId:rani-config">
+        <db:select doc:name="Select" doc:id="0d6969cd-f85d-4049-a2ec-45224813d595" config-ref="Database_Config">
+			<db:sql ><![CDATA[SELECT * FROM database_db.emp where id=:id]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	id:attributes.queryParams.customerid
+}]]]></db:input-parameters>
+		</db:select>
+		<choice doc:name="Choice" doc:id="a4a3c60c-8701-497a-943e-c9b9d390a836" >
+			<when expression="#[sizeOf(payload)&gt;0]">
+				<ee:transform doc:name="Transform Message" doc:id="a6ca80f4-6838-4d56-96ae-19f08fd29e94" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="Transform Message" doc:id="d9949e2d-bf8d-468b-b318-2e78cfff9561" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+"for the given customer id there is no data exist"]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+		<ee:transform doc:name="Transform Message">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+ <flow name="post:\createcustomer:application\json:rani-config">
+		<foreach doc:name="For Each" doc:id="a91680cc-3ec5-43ce-a887-9407d6de8d8d" >
+			<db:insert doc:name="Insert" doc:id="e91ff9c7-2903-4622-a6ef-6da9440e7ebc" config-ref="Database_Config">
+			<db:sql><![CDATA[INSERT INTO database_db.emp(id,name,email,address,telephone) values (:id,:name,:email,:address,:telephone)
+:]]></db:sql>
+			<db:input-parameters><![CDATA[#[{
+	 	id:payload.id, 
+	name:payload.name, 
+ 	email:payload.email, 
+ 	address:payload.address, 
+ 	telephone:payload.telephone 
+}]]]></db:input-parameters>
+		</db:insert>
+		</foreach>
+		<ee:transform doc:name="Transform Message" doc:id="7cac2095-dd7d-4475-9652-8d2cd4661efb" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+"customer profile create"]]></ee:set-payload>
+			</ee:message>
+		</ee:transform> 
+     </flow>
+</mule>
